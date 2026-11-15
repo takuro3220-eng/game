@@ -6,6 +6,8 @@ on:
     paths:
       - ASTRA_LEGENDS_V10_SOURCE.zip
       - .github/workflows/build.yml
+      - .github/scripts/controls_ja.py
+      - .github/scripts/mobile_finish.py
   workflow_dispatch:
 
 permissions:
@@ -50,6 +52,14 @@ jobs:
 
       - name: Tune rendering and add landscape viewport support
         run: python3 .github/scripts/mobile_finish.py prepare
+
+      - name: Apply Japanese text and iPhone joystick repair v11.2
+        shell: bash
+        run: |
+          python3 .github/scripts/controls_ja.py
+          grep -q '日本語版 v11.2' game/scripts/touch_hud.gd
+          grep -q 'InputEventMouseButton' game/scripts/touch_hud.gd
+          grep -q 'iPhone joystick drag emits screen-forward axis' game/tests/smoke.gd
 
       - name: Install Godot engine and Web export templates
         uses: chickensoft-games/setup-godot@v2
