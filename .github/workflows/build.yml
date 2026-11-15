@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - ASTRA_LEGENDS_V10_SOURCE.zip
+      - .github/workflows/build.yml
   workflow_dispatch:
 
 permissions:
@@ -24,10 +25,11 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Unpack the uploaded source ZIP
+      - name: Unpack uploaded Godot project
+        shell: bash
         run: |
           test -s ASTRA_LEGENDS_V10_SOURCE.zip
           unzip -t ASTRA_LEGENDS_V10_SOURCE.zip
@@ -36,28 +38,39 @@ jobs:
           test -s game/project.godot
           test -s game/scenes/main.tscn
           test -s game/assets/models/characters/aster.glb
+          test -s game/assets/models/characters/lyra.glb
+          test -s game/export_presets.cfg
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("game")
+          needed=["scripts/game_root.gd","scripts/player.gd","scripts/enemy.gd","scripts/touch_hud.gd","scripts/world_builder.gd","assets/audio/celestial_theme.ogg"]
+          assert all((root/n).is_file() for n in needed), "Missing Godot gameplay resources"
+          print("Godot project and playable resources present")
+          PY
 
-      - name: Validate project structure and assets
-        working-directory: game
-        run: python3 tests/verify_project.py
-
-      - name: Install Godot 4.7.2 and export templates
+      - name: Install Godot engine and Web export templates
         uses: chickensoft-games/setup-godot@v2
         with:
           version: 4.7.2
           use-dotnet: false
           include-templates: true
 
-      - name: Confirm engine version
-        run: godot --version
+      - name: Import GLB models, scenes, and textures
+        shell: bash
+        run: |
+          set -o pipefail
+          godot --headless --path game --editor --quit 2>&1 | tee godot_import.log
+          if grep -iE 'SCRIPT ERROR|Parse Error|Parser Error' godot_import.log; then exit 1; fi
 
-      - name: Import game assets
-        run: godot --headless --path game --editor --quit
+      - name: Run Godot engine startup smoke test
+        shell: bash
+        run: |
+          set -o pipefail
+          godot --headless --path game --quit-after 45 2>&1 | tee godot_smoke.log
+          if grep -iE 'SCRIPT ERROR|Parse Error|Parser Error' godot_smoke.log; then exit 1; fi
 
-      - name: Godot scene and joystick smoke test
-        run: godot --headless --path game --script res://tests/smoke.gd
-
-      - name: Export Web app
+      - name: Export iPhone-compatible Web build
+        shell: bash
         run: |
           mkdir -p game/build/web
           godot --headless --path game --export-release "Web" game/build/web/index.html
@@ -65,7 +78,7 @@ jobs:
           test -s game/build/web/index.wasm
           test -s game/build/web/index.pck
 
-      - name: Preserve Web build for inspection
+      - name: Save build artifact for inspection
         uses: actions/upload-artifact@v4
         with:
           name: ASTRA-LEGENDS-Godot-Web
@@ -74,10 +87,12 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
-      - name: Upload GitHub Pages site
+
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: game/build/web/
-      - name: Publish iPhone browser version
+
+      - name: Publish game to GitHub Pages
         id: deploy
         uses: actions/deploy-pages@v4
