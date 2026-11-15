@@ -72,11 +72,12 @@ jobs:
       - name: Export iPhone-compatible Web build
         shell: bash
         run: |
-          mkdir -p game/build/web
-          godot --headless --path game --export-release "Web" game/build/web/index.html
-          test -s game/build/web/index.html
-          test -s game/build/web/index.wasm
-          test -s game/build/web/index.pck
+          EXPORT_DEST="$GITHUB_WORKSPACE/game/build/web/index.html"
+          mkdir -p "$(dirname "$EXPORT_DEST")"
+          godot --headless --path "$GITHUB_WORKSPACE/game" --export-release "Web" "$EXPORT_DEST"
+          test -s "$GITHUB_WORKSPACE/game/build/web/index.html"
+          test -s "$GITHUB_WORKSPACE/game/build/web/index.wasm"
+          test -s "$GITHUB_WORKSPACE/game/build/web/index.pck"
 
       - name: Save build artifact for inspection
         uses: actions/upload-artifact@v4
