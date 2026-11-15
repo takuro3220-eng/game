@@ -224,5 +224,14 @@ def touch_smoke(s):
 
 rewrite("scripts/touch_hud.gd", japanese_hud)
 rewrite("scripts/game_root.gd", japanese_story)
+def forward_facing(s):
+    # The imported GLB faces +Z in its unrotated stance.
+    # When the player walks towards -Z (away from camera), turn visual by 180°.
+    return exact(s,
+                 "var facing: float = atan2(-last_direction.x, -last_direction.z)",
+                 "var facing: float = atan2(last_direction.x, last_direction.z)",
+                 "character forward orientation")
+
+rewrite("scripts/player.gd", forward_facing)
 rewrite("tests/smoke.gd", touch_smoke)
 print("ASTRA mobile build patch version 11.2 ready")
