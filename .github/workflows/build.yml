@@ -48,6 +48,9 @@ jobs:
           print("Godot project and playable resources present")
           PY
 
+      - name: Tune rendering and add landscape viewport support
+        run: python3 .github/scripts/mobile_finish.py prepare
+
       - name: Install Godot engine and Web export templates
         uses: chickensoft-games/setup-godot@v2
         with:
@@ -78,6 +81,9 @@ jobs:
           test -s "$GITHUB_WORKSPACE/game/build/web/index.html"
           test -s "$GITHUB_WORKSPACE/game/build/web/index.wasm"
           test -s "$GITHUB_WORKSPACE/game/build/web/index.pck"
+
+      - name: Add iPhone orientation guidance to published game
+        run: python3 .github/scripts/mobile_finish.py finalize
 
       - name: Save build artifact for inspection
         uses: actions/upload-artifact@v4
