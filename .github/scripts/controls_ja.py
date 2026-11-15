@@ -168,8 +168,8 @@ def japanese_story(s):
       ("%s!  %d damage", "%s！  %dダメージ"),
       ("Recovered HP", "HPを回復した！"),
       ("No potion / already healthy", "回復薬がないか、HPが満タンです"),
-      ("Sword upgraded!", "剣を強化した！"),
-      ("Armor reinforced!", "防具を強化した！"),
+      ("Sword upgraded! -%d G", "剣を強化した！ -%d G"),
+      ("Armor reinforced! -%d G", "防具を強化した！ -%d G"),
       ("Need %d gold", "ゴールドが%d足りません"),
       ("Adventure saved", "セーブ完了"),
       ("Save failed", "セーブ失敗"),
@@ -190,7 +190,14 @@ def japanese_story(s):
       ("Saved", "セーブしました")
     ]
     for original, japanese in pairs:
-        s = exact(s, '"'+original+'"','"'+japanese+'"', "story translation")
+        source = '"' + original + '"'
+        target = '"' + japanese + '"'
+        if original == "Need %d gold":
+            if s.count(source) != 2:
+                raise RuntimeError("Expected exactly two insufficient-gold messages")
+            s = s.replace(source, target)
+        else:
+            s = exact(s, source, target, "story translation")
     s = exact(s, '_message("Hero: " + next_id.capitalize())',
               '_message("主人公を変更：" + ("アスター" if next_id == "aster" else "リラ"))',
               "hero name")
