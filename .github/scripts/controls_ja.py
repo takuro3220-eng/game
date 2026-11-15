@@ -165,7 +165,7 @@ def japanese_story(s):
       ("Guardian defeated! Return to Elder Elian.", "守護者を倒した！ 長老エリアンに報告しよう。"),
       ("Arc Slash", "円月斬り"),
       ("Hit", "命中"),
-      ("damage", "ダメージ"),
+      ("%s!  %d damage", "%s！  %dダメージ"),
       ("Recovered HP", "HPを回復した！"),
       ("No potion / already healthy", "回復薬がないか、HPが満タンです"),
       ("Sword upgraded!", "剣を強化した！"),
@@ -217,7 +217,8 @@ def touch_smoke(s):
         end.pressed = false
         end.position = move.position
         hud._input(end)
-        _require((hero.get("input_axis") as Vector2).length() < 0.01, "Joystick release resets movement")
+        var released_axis: Vector2 = hero.get("input_axis")
+        _require(released_axis.length() < 0.01, "Joystick release resets movement")
 '''
     return exact(s,needle,extra+needle,"touch regression test")
 
