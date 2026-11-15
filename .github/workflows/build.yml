@@ -1,0 +1,83 @@
+name: Build Godot ZIP — iPhone web preview
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ASTRA_LEGENDS_V10_SOURCE.zip
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: astra-godot-pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Unpack the uploaded source ZIP
+        run: |
+          test -s ASTRA_LEGENDS_V10_SOURCE.zip
+          unzip -t ASTRA_LEGENDS_V10_SOURCE.zip
+          mkdir -p game
+          unzip -q ASTRA_LEGENDS_V10_SOURCE.zip -d game
+          test -s game/project.godot
+          test -s game/scenes/main.tscn
+          test -s game/assets/models/characters/aster.glb
+
+      - name: Validate project structure and assets
+        working-directory: game
+        run: python3 tests/verify_project.py
+
+      - name: Install Godot 4.7.2 and export templates
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: true
+
+      - name: Confirm engine version
+        run: godot --version
+
+      - name: Import game assets
+        run: godot --headless --path game --editor --quit
+
+      - name: Godot scene and joystick smoke test
+        run: godot --headless --path game --script res://tests/smoke.gd
+
+      - name: Export Web app
+        run: |
+          mkdir -p game/build/web
+          godot --headless --path game --export-release "Web" game/build/web/index.html
+          test -s game/build/web/index.html
+          test -s game/build/web/index.wasm
+          test -s game/build/web/index.pck
+
+      - name: Preserve Web build for inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: ASTRA-LEGENDS-Godot-Web
+          path: game/build/web/
+          if-no-files-found: error
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload GitHub Pages site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: game/build/web/
+      - name: Publish iPhone browser version
+        id: deploy
+        uses: actions/deploy-pages@v4
